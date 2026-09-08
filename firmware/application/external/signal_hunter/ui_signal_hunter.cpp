@@ -105,10 +105,12 @@ HunterFreqsView::HunterFreqsView(Rect parent_rect, SignalHunterAppView& parent)
                   &button_clear,
                   &labels,
                   &field_dwell,
-                  &text_loaded_info});
+                  &text_loaded_info,
+                  &text_file_info});
 
     field_dwell.set_value(parent_app.hop_dwell_ms);
     field_dwell.on_change = [this](int32_t v) { parent_app.hop_dwell_ms = v; };
+    update_list_count();
 
     button_load_file.on_select = [this](Button&) {
         auto* view = parent_app.get_nav().push<FileLoadView>(".TXT");
@@ -130,7 +132,7 @@ HunterFreqsView::HunterFreqsView(Rect parent_rect, SignalHunterAppView& parent)
 
                 update_list_count();
 
-                // Update the mode display in the Config tab
+                // Update the mode display in the Setup tab
                 if (parent_app.get_config_view()) {
                     parent_app.get_config_view()->update_mode_display();
                 }
@@ -142,10 +144,11 @@ HunterFreqsView::HunterFreqsView(Rect parent_rect, SignalHunterAppView& parent)
         parent_app.frequency_list.clear();
         parent_app.current_freq_index = 0;
         parent_app.freq_hop_mode = false;
+        parent_app.freqman_file = "TARGETS";
 
         update_list_count();
 
-        // Update the mode display in the Config tab
+        // Update the mode display in the Setup tab
         if (parent_app.get_config_view()) {
             parent_app.get_config_view()->update_mode_display();
         }
@@ -154,16 +157,22 @@ HunterFreqsView::HunterFreqsView(Rect parent_rect, SignalHunterAppView& parent)
 
 void HunterFreqsView::update_list_count() {
     text_loaded_info.set("Loaded: " +
-                         to_string_dec_uint(parent_app.frequency_list.size()) + " freqs");
+                         to_string_dec_uint(parent_app.frequency_list.size()));
+    if (parent_app.frequency_list.empty())
+        text_file_info.set("File: -");
+    else
+        text_file_info.set("File: " + parent_app.freqman_file);
 }
 
 void HunterFreqsView::focus() {
     button_load_file.focus();
 }
 
-// --- TAB 3: Config View ---
+// --- TAB 3: Setup View ---
 HunterConfigView::HunterConfigView(Rect parent_rect, SignalHunterAppView& parent)
-    : View(parent_rect), parent_app(parent), field_single_freq{{UI_POS_X(2), UI_POS_Y(4)}, parent.get_nav()} {
+    : View(parent_rect),
+      parent_app(parent),
+      field_single_freq{{kPad, 8 + kBtnH + 8 + 16}, parent.get_nav()} {
     add_children({&button_mode,
                   &field_single_freq,
                   &labels,
@@ -177,6 +186,9 @@ HunterConfigView::HunterConfigView(Rect parent_rect, SignalHunterAppView& parent
     };
 
     field_single_freq.set_value(parent_app.single_frequency);
+    field_single_freq.updated = [this](rf::Frequency f) {
+        parent_app.single_frequency = f;
+    };
 
     field_threshold.set_value(parent_app.energy_threshold);
     field_threshold.on_change = [this](int32_t v) { parent_app.energy_threshold = v; };
@@ -195,8 +207,8 @@ void HunterConfigView::on_show() {
 
 void HunterConfigView::update_mode_display() {
     if (parent_app.freq_hop_mode)
-        button_mode.set_text("MODE: HOP (" +
-                             to_string_dec_uint(parent_app.frequency_list.size()) + " freqs)");
+        button_mode.set_text("MODE: HOP / " +
+                             to_string_dec_uint(parent_app.frequency_list.size()));
     else
         button_mode.set_text("MODE: SINGLE");
 }
@@ -221,10 +233,10 @@ SignalHunterAppView::SignalHunterAppView(ui::NavigationView& nav)
     view_config = std::make_unique<HunterConfigView>(content_rect, *this);
 
     tab_view = std::make_unique<TabView>(std::initializer_list<TabView::TabDef>{
-        {"Target", Color::cyan(), view_main.get()},
-        {"Freqs", Color::green(), view_freqs.get()},
-        {"Config", Color::yellow(), view_config.get()}});
-    tab_view->set_parent_rect(view_rect);
+        {"Hunt", Color::cyan(), view_main.get()},
+        {"List", Color::green(), view_freqs.get()},
+        {"Setup", Color::yellow(), view_config.get()}});
+    tab_view->set_parent_rect(tab_rect);
 
     add_children({&field_lna,
                   &field_vga,

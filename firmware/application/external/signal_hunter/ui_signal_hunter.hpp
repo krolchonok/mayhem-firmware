@@ -38,7 +38,12 @@ namespace ui::external_app::signal_hunter {
 
 class SignalHunterAppView;
 
-// --- TAB 1: Main View ---
+// Shared horizontal rhythm for tab content (parent-relative, below tab bar).
+static constexpr Coord kPad = 8;
+static constexpr Dim kBtnH = 28;
+static constexpr Dim kRow = 24;
+
+// --- TAB 1: Hunt ---
 class HunterMainView : public View {
    public:
     HunterMainView(Rect parent_rect, SignalHunterAppView& parent);
@@ -53,13 +58,23 @@ class HunterMainView : public View {
    private:
     SignalHunterAppView& parent_app;
     rf::Frequency current_freq_{433920000};
-    BigFrequency big_display{{4, 24, 224, 52}, 0};
-    Text text_status{{UI_POS_X_CENTER(12), UI_POS_Y(6), 96, 16}, "IDLE"};
-    Button button_start_stop{{UI_POS_X_CENTER(10), UI_POS_Y(8), 80, 32}, "START"};
-    Text text_hits{{UI_POS_X_CENTER(10), UI_POS_Y(11), 80, 16}, "Hits: 0"};
+
+    BigFrequency big_display{{0, 4, UI_POS_MAXWIDTH, 52}, 0};
+
+    Text text_status{
+        {UI_POS_X_CENTER(12), 64, UI_POS_WIDTH(12), 16},
+        "IDLE"};
+
+    Button button_start_stop{
+        {UI_POS_X_CENTER(12), 92, UI_POS_WIDTH(12), 36},
+        "START"};
+
+    Text text_hits{
+        {UI_POS_X_CENTER(12), 140, UI_POS_WIDTH(12), 16},
+        "Hits: 0"};
 };
 
-// --- TAB 2: Freqs View ---
+// --- TAB 2: List ---
 class HunterFreqsView : public View {
    public:
     HunterFreqsView(Rect parent_rect, SignalHunterAppView& parent);
@@ -68,17 +83,35 @@ class HunterFreqsView : public View {
 
    private:
     SignalHunterAppView& parent_app;
-    Button button_load_file{{UI_POS_X(2), UI_POS_Y(1), 80, 28}, "LOAD FILE"};
-    Button button_clear{{UI_POS_X_RIGHT(12), UI_POS_Y(1), 80, 28}, "CLEAR"};
+
+    Button button_load_file{
+        {kPad, kPad, UI_POS_WIDTH(12), kBtnH},
+        "LOAD FILE"};
+
+    Button button_clear{
+        {UI_POS_X_RIGHT(13), kPad, UI_POS_WIDTH(12), kBtnH},
+        "CLEAR"};
 
     Labels labels{
-        {{UI_POS_X(2), UI_POS_Y(4)}, "Dwell Time (ms):", Color::light_grey()}};
-    NumberField field_dwell{{UI_POS_X_RIGHT(8), UI_POS_Y(4)}, 4, {10, 9999}, 10, ' '};
+        {{kPad, 8 + kBtnH + 12}, "Dwell (ms)", Color::light_grey()}};
 
-    Text text_loaded_info{{UI_POS_X(2), UI_POS_Y(6), 208, 16}, "Loaded: 0 freqs"};
+    NumberField field_dwell{
+        {UI_POS_X_RIGHT(6), 8 + kBtnH + 12},
+        4,
+        {10, 9999},
+        10,
+        ' '};
+
+    Text text_loaded_info{
+        {kPad, 8 + kBtnH + 12 + kRow + 8, UI_POS_WIDTH_REMAINING(2), 16},
+        "Loaded: 0"};
+
+    Text text_file_info{
+        {kPad, 8 + kBtnH + 12 + kRow + 8 + kRow, UI_POS_WIDTH_REMAINING(2), 16},
+        "File: -"};
 };
 
-// --- TAB 3: Config View ---
+// --- TAB 3: Setup ---
 class HunterConfigView : public View {
    public:
     HunterConfigView(Rect parent_rect, SignalHunterAppView& parent);
@@ -90,21 +123,33 @@ class HunterConfigView : public View {
     SignalHunterAppView& parent_app;
 
     Button button_mode{
-        {UI_POS_X(2), UI_POS_Y(2), 208, 28},
+        {kPad, kPad, UI_POS_WIDTH_REMAINING(2), kBtnH},
         "MODE: SINGLE"};
 
-    RxFrequencyField field_single_freq;  // UI_POS_Y(4)
-
     Labels labels{
-        {{UI_POS_X(2), UI_POS_Y(6)}, "Energy Threshold:", Color::light_grey()},
-        {{UI_POS_X(2), UI_POS_Y(8)}, "Hang-Time (ms):", Color::light_grey()}};
+        {{kPad, 8 + kBtnH + 8}, "Frequency", Color::light_grey()},
+        {{kPad, 8 + kBtnH + 8 + 36}, "Energy thr.", Color::light_grey()},
+        {{kPad, 8 + kBtnH + 8 + 36 + kRow}, "Hang (ms)", Color::light_grey()}};
 
-    NumberField field_threshold{{UI_POS_X_RIGHT(8), UI_POS_Y(6)}, 5, {100, 99999}, 100, ' '};
-    NumberField field_hang_time{{UI_POS_X_RIGHT(8), UI_POS_Y(8)}, 4, {10, 5000}, 10, ' '};
+    RxFrequencyField field_single_freq;
+
+    NumberField field_threshold{
+        {UI_POS_X_RIGHT(7), 8 + kBtnH + 8 + 36},
+        5,
+        {100, 99999},
+        100,
+        ' '};
+
+    NumberField field_hang_time{
+        {UI_POS_X_RIGHT(6), 8 + kBtnH + 8 + 36 + kRow},
+        4,
+        {10, 5000},
+        10,
+        ' '};
 
     Text text_info_config{
-        {UI_POS_X(2), UI_POS_Y(10), 208, 16},
-        "Restart HUNT after change"};
+        {kPad, 8 + kBtnH + 8 + 36 + kRow * 2 + 12, UI_POS_WIDTH_REMAINING(2), 16},
+        "Restart hunt after change"};
 };
 
 // --- MAIN APP VIEW ---
@@ -116,7 +161,6 @@ class SignalHunterAppView final : public ui::View {
     std::string title() const override { return "SignalHunter"; }
     ui::NavigationView& get_nav() { return nav_; }
 
-    // Application state shared across all views
     std::vector<rf::Frequency> frequency_list;
     uint32_t current_freq_index{0};
     uint32_t energy_threshold{5000};
@@ -131,6 +175,7 @@ class SignalHunterAppView final : public ui::View {
     void send_hunter_config(bool start);
     HunterMainView* get_main_view() { return view_main.get(); }
     HunterConfigView* get_config_view() { return view_config.get(); }
+    HunterFreqsView* get_freqs_view() { return view_freqs.get(); }
 
    private:
     ui::NavigationView& nav_;
@@ -149,22 +194,21 @@ class SignalHunterAppView final : public ui::View {
     ui::RFAmpField field_rf_amp{{UI_POS_X(14), UI_POS_Y(0)}};
     ui::RSSI rssi{{UI_POS_X(0), UI_POS_Y(1), UI_POS_MAXWIDTH, 4}};
 
-    static constexpr Dim tab_bar_h = 20;
+    // Tab bar is always 24px (TabView / Tab::set). Content starts immediately below.
+    static constexpr Dim tab_bar_h = 3 * 8;
+    static constexpr Coord tabs_y = UI_POS_Y(2) + 4;
 
-    Rect view_rect{
-        0, UI_POS_Y(2) + 4, UI_POS_MAXWIDTH,
-        screen_height - (UI_POS_Y(2) + 4) - UI_POS_HEIGHT(1)};
+    Rect tab_rect{0, tabs_y, UI_POS_MAXWIDTH, tab_bar_h};
 
     Rect content_rect{
-        0, UI_POS_Y(2) + 4 + tab_bar_h, UI_POS_MAXWIDTH,
-        screen_height - (UI_POS_Y(2) + 4 + tab_bar_h) - UI_POS_HEIGHT(1)};
+        0, tabs_y + tab_bar_h, UI_POS_MAXWIDTH,
+        screen_height - (tabs_y + tab_bar_h) - UI_POS_HEIGHT(1)};
 
     void on_hunter_trigger(const HunterTriggerMessage* message);
     void on_hunter_stop(const HunterStopMessage* message);
     void start_recording();
     void stop_recording();
 
-    // timer variables
     uint32_t hop_timer_ms{0};
     void on_frame_sync();
 
