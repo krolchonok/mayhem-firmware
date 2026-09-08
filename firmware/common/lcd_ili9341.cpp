@@ -606,17 +606,24 @@ bool ILI9341::draw_bmp_from_sdcard_file(const ui::Point p, const std::filesystem
     /*                 ^ this is for to "start" AKA "image end" draw at the 17th line,
      *                   because the render_line logic below is start with p.y() + py until "end" AKA "image start"*/
 
+    // Block size must be evenly divisible by every pixel stride we read (2, 3
+    // and 4 bytes), otherwise a partial pixel is left unconsumed each block
+    // and file_pos drifts from the real file position. That mismatch defeats
+    // File::seek()'s no-op fast path (old_position == new_position), forcing
+    // a real f_lseek() on every block and making SD reads extremely slow.
+    static constexpr int block_size = 252;  // LCM(2, 3, 4) * 21
+
     while (1) {
         while (px < width) {
             bmpimage.seek(file_pos);
             memset(buffer, 0, 257);
-            read_size = bmpimage.read(buffer, 256);
+            read_size = bmpimage.read(buffer, block_size);
             if (read_size.is_error())
                 return false;  // Read error
 
             pointer = 0;
-            while (pointer < 256) {
-                if (pointer + 4 > 256)
+            while (pointer < block_size) {
+                if (pointer + 4 > block_size)
                     break;
                 switch (type) {
                     case 0:  // R5G6B5
@@ -645,14 +652,14 @@ bool ILI9341::draw_bmp_from_sdcard_file(const ui::Point p, const std::filesystem
                     break;
                 }
             }
-            if (read_size.value() != 256)
+            if (read_size.value() != block_size)
                 break;
         }
         render_line({start_x, p.y() + py}, px, line_buffer);
         px = 0;
         py--;
 
-        if (read_size.value() < 256 || py < 0)
+        if (read_size.value() < block_size || py < 0)
             break;
     }
     return true;
