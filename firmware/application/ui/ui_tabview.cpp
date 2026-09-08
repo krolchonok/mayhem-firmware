@@ -47,18 +47,12 @@ void Tab::set(
 
 void Tab::paint(Painter& painter) {
     const auto rect = screen_rect();
-    const Color color = highlighted() ? Theme::getInstance()->bg_darkest->background : Theme::getInstance()->bg_medium->background;
+    const Color color = highlighted() ? Theme::getInstance()->bg_light->background : Theme::getInstance()->bg_medium->background;
 
-    painter.fill_rectangle({rect.left(), rect.top(), rect.width() - 8, rect.height()}, color);
+    painter.fill_rectangle({rect.left(), rect.top(), rect.width(), rect.height()}, color);
 
     if (!highlighted())
-        painter.draw_hline({rect.left(), rect.top()}, rect.width() - 9, Theme::getInstance()->bg_light->background);
-
-    painter.draw_bitmap(
-        {rect.right() - 8, rect.top()},
-        bitmap_tab_edge,
-        color,
-        Theme::getInstance()->bg_dark->background);
+        painter.draw_hline({rect.left(), rect.top()}, rect.width() - 1, Theme::getInstance()->bg_light->background);
 
     auto text_point = rect.center() - Point(4, 0) - Point(text_.size() * 8 / 2, 16 / 2);
 
